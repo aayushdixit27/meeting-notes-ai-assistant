@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Notes AI Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 Meeting Notes AI Assistant</h1>
+            <p class="subtitle">Transform your meeting transcripts into actionable insights</p>
+        </header>
+
+        <div class="main-content">
+            <div class="input-section">
+                <h2>Upload Your Meeting Notes</h2>
+                <form id="summaryForm">
+                    <div class="form-group">
+                        <label for="meetingTitle">Meeting Title (optional)</label>
+                        <input type="text" id="meetingTitle" name="title" placeholder="e.g., Q4 Planning Meeting">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="meetingNotes">Meeting Notes *</label>
+                        <textarea
+                            id="meetingNotes"
+                            name="notes"
+                            rows="12"
+                            placeholder="Paste your meeting transcript or notes here...&#x0a;&#x0a;Example:&#x0a;John: We need to finalize the Q4 roadmap by next week.&#x0a;Sarah: I agree. The design team is ready to start on the new features.&#x0a;Mike: What about the API integration? We're still waiting on the vendor..."
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="includeTopics" name="includeTopics" checked>
+                            Include topic tagging & keyword extraction
+                        </label>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn-primary">
+                        Summarize Meeting
+                    </button>
+                </form>
+
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Claude is analyzing your meeting notes...</p>
+                    <p class="loading-detail">This usually takes 2-5 seconds</p>
+                </div>
+            </div>
+
+            <div class="results-section" id="results" style="display: none;">
+                <h2>Analysis Results</h2>
+
+                <div class="result-card">
+                    <h3>📝 Summary</h3>
+                    <div id="summary"></div>
+                </div>
+
+                <div class="result-card">
+                    <h3>😊 Sentiment Analysis</h3>
+                    <div id="sentiment"></div>
+                </div>
+
+                <div class="result-card" id="topicsCard" style="display: none;">
+                    <h3>🏷️ Topics & Keywords</h3>
+                    <div id="topics"></div>
+                </div>
+
+                <div class="result-card metadata">
+                    <h3>📊 Metadata</h3>
+                    <div id="metadata"></div>
+                </div>
+
+                <button onclick="resetForm()" class="btn-secondary">Analyze Another Meeting</button>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h2>📚 Recent Summaries</h2>
+            <div id="recentSummaries" class="summaries-grid">
+                <p class="empty-state">No summaries yet. Analyze your first meeting above!</p>
+            </div>
+        </div>
+
+        <footer>
+            <div class="pm-insights">
+                <h3>💡 PM Learning Moment</h3>
+                <p id="pmInsight">Watch the network tab in your browser's dev tools while you click "Summarize" - you'll see the API call in action!</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const form = document.getElementById('summaryForm');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Load recent summaries on page load
+        loadRecentSummaries();
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                title: document.getElementById('meetingTitle').value || 'Untitled Meeting',
+                notes: document.getElementById('meetingNotes').value,
+                includeTopics: document.getElementById('includeTopics').checked
+            };
+
+            // Show loading state
+            form.style.display = 'none';
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayResults(data);
+                    updatePMInsight(data.metadata);
+                    loadRecentSummaries();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error occurred'));
+                    form.style.display = 'block';
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+                form.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            // Summary
+            document.getElementById('summary').innerHTML = formatSummary(data.summary);
+
+            // Sentiment
+            document.getElementById('sentiment').innerHTML = formatSentiment(data.sentiment);
+
+            // Topics (if included)
+            if (data.topics) {
+                document.getElementById('topicsCard').style.display = 'block';
+                document.getElementById('topics').innerHTML = formatTopics(data.topics);
+            }
+
+            // Metadata
+            document.getElementById('metadata').innerHTML = formatMetadata(data.metadata);
+
+            results.style.display = 'block';
+        }
+
+        function formatSummary(summary) {
+            // Handle both string and array formats
+            if (Array.isArray(summary)) {
+                return summary.map(item => `<li>${item}</li>`).join('\n');
+            }
+
+            // Convert bullet points to HTML
+            return summary
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line)
+                .map(line => {
+                    if (line.startsWith('- ') || line.startsWith('• ')) {
+                        return `<li>${line.substring(2)}</li>`;
+                    } else if (line.startsWith('**') || line.includes(':')) {
+                        return `<strong>${line}</strong>`;
+                    }
+                    return `<p>${line}</p>`;
+                })
+                .join('\n');
+        }
+
+        function formatSentiment(sentiment) {
+            const emojis = {
+                'positive': '😊',
+                'neutral': '😐',
+                'negative': '😟',
+                'mixed': '🤔'
+            };
+
+            const colors = {
+                'positive': '#4CAF50',
+                'neutral': '#FF9800',
+                'negative': '#f44336',
+                'mixed': '#2196F3'
+            };
+
+            const overall = sentiment.overall.toLowerCase();
+
+            return `
+                <div class="sentiment-badge" style="background-color: ${colors[overall]}20; border-left: 4px solid ${colors[overall]}">
+                    <span class="sentiment-emoji">${emojis[overall]}</span>
+                    <span class="sentiment-label">${sentiment.overall}</span>
+                </div>
+                <p class="sentiment-explanation">${sentiment.explanation}</p>
+            `;
+        }
+
+        function formatTopics(topics) {
+            const keywordsHTML = topics.keywords
+                .map(kw => `<span class="keyword-tag">${kw}</span>`)
+                .join(' ');
+
+            const topicsHTML = topics.main_topics
+                .map(topic => `<li>${topic}</li>`)
+                .join('');
+
+            return `
+                <div class="topics-container">
+                    <h4>Main Topics:</h4>
+                    <ul>${topicsHTML}</ul>
+                    <h4>Keywords:</h4>
+                    <div class="keywords">${keywordsHTML}</div>
+                </div>
+            `;
+        }
+
+        function formatMetadata(metadata) {
+            return `
+                <div class="metadata-grid">
+                    <div class="metadata-item">
+                        <strong>Processing Time:</strong> ${metadata.processing_time}
+                    </div>
+                    <div class="metadata-item">
+                        <strong>Input Tokens:</strong> ${metadata.input_tokens.toLocaleString()}
+                    </div>
+                    <div class="metadata-item">
+                        <strong>Output Tokens:</strong> ${metadata.output_tokens.toLocaleString()}
+                    </div>
+                    <div class="metadata-item">
+                        <strong>Estimated Cost:</strong> $${metadata.estimated_cost}
+                    </div>
+                    <div class="metadata-item">
+                        <strong>Model:</strong> ${metadata.model}
+                    </div>
+                    <div class="metadata-item">
+                        <strong>Timestamp:</strong> ${new Date(metadata.timestamp).toLocaleString()}
+                    </div>
+                </div>
+            `;
+        }
+
+        function updatePMInsight(metadata) {
+            const insights = [
+                `This API call took ${metadata.processing_time}. That's latency - the time users wait. Even 3 seconds feels long!`,
+                `You just used ${metadata.input_tokens} input tokens and ${metadata.output_tokens} output tokens. At scale, this adds up to real costs.`,
+                `Notice the "estimated cost"? Every AI feature has a per-use cost. Good PMs track this when planning features.`,
+                `The model ${metadata.model} has a ~200K token context window. Your input used ${((metadata.input_tokens/200000)*100).toFixed(1)}% of it.`,
+                `If 100 users did this simultaneously, you'd need to handle rate limits. That's why queues and async processing matter.`
+            ];
+
+            const randomInsight = insights[Math.floor(Math.random() * insights.length)];
+            document.getElementById('pmInsight').textContent = randomInsight;
+        }
+
+        async function loadRecentSummaries() {
+            try {
+                const response = await fetch('/summaries');
+                const summaries = await response.json();
+
+                const container = document.getElementById('recentSummaries');
+
+                if (summaries.length === 0) {
+                    container.innerHTML = '<p class="empty-state">No summaries yet. Analyze your first meeting above!</p>';
+                    return;
+                }
+
+                container.innerHTML = summaries
+                    .slice(0, 6) // Show only last 6
+                    .map(s => `
+                        <div class="summary-card">
+                            <h4>${s.title}</h4>
+                            <p class="summary-preview">${s.summary.substring(0, 150)}...</p>
+                            <div class="summary-meta">
+                                <span class="sentiment-mini ${s.sentiment.overall.toLowerCase()}">${s.sentiment.overall}</span>
+                                <span class="time">${new Date(s.timestamp).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    `)
+                    .join('');
+            } catch (error) {
+                console.error('Failed to load summaries:', error);
+            }
+        }
+
+        function resetForm() {
+            form.reset();
+            form.style.display = 'block';
+            results.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

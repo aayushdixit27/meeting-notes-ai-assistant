@@ -1,0 +1,85 @@
+Example Meeting Notes - Q4 Product Planning
+==============================================
+
+Meeting Date: October 23, 2025
+Attendees: Sarah (PM), Mike (Engineering Lead), Jessica (Design), Tom (Marketing)
+
+Sarah: Thanks everyone for joining. Let's dive into our Q4 roadmap planning. I want to focus on three key areas: the new user onboarding flow, API rate limit improvements, and the mobile app refresh.
+
+Mike: Before we start, I want to flag that we're currently running at 85% capacity on the engineering team. If we add more features, we'll need to either extend timelines or add resources.
+
+Sarah: Good point. Let's keep that in mind as we prioritize. Jessica, can you walk us through the onboarding flow redesign?
+
+Jessica: Absolutely. Based on our user research, we found that 40% of new users drop off during signup. The current flow has too many steps - we're asking for too much information upfront. I'm proposing we reduce it from 5 steps to 2 steps, collecting only email and password initially. We can gather additional info progressively as users engage with the product.
+
+Tom: From a marketing perspective, that's fantastic. Shorter signup flows typically improve conversion by 20-30%. We've seen this across the industry. My only concern is how we'll segment users for targeted campaigns if we don't collect demographic data upfront.
+
+Jessica: We can use behavioral segmentation instead. Track what features they use, what content they engage with. That's often more valuable than demographic data anyway.
+
+Mike: I like the direction, but I want to highlight the technical complexity. Our current auth system is tightly coupled with the user profile database. Decoupling this will take about 3 weeks of engineering time, plus 1 week for testing. We'll also need to handle data migration for existing users.
+
+Sarah: Okay, so we're looking at 4 weeks total. What about the API rate limiting?
+
+Mike: The rate limiting is critical. We had two incidents last month where a few customers accidentally DDoS'd our API with poorly configured integrations. I'm proposing we implement tiered rate limits based on plan level, plus better error messages that tell developers exactly when they can retry.
+
+Sarah: What's the customer impact if we don't do this?
+
+Mike: Right now, when someone hits the rate limit, the entire service slows down for all users. It's a shared infrastructure problem. We need to isolate these issues. Plus, better rate limiting opens up opportunities for premium pricing tiers.
+
+Tom: That's interesting. We could position higher rate limits as a premium feature. Enterprise customers constantly ask for this.
+
+Sarah: Great, so this has both technical and business value. Timeline?
+
+Mike: 2 weeks for implementation, 1 week for testing and rollout. It's more straightforward than the onboarding work.
+
+Sarah: And the mobile app refresh?
+
+Jessica: The mobile app is where we're getting the most negative feedback. Our App Store rating dropped from 4.5 to 3.8 in the last quarter. The main complaints are about performance and outdated UI. I've designed a complete visual refresh that aligns with our new brand guidelines, plus we're proposing to migrate from React Native to native Swift and Kotlin.
+
+Mike: Hold on, that's a massive undertaking. Rewriting in native will take at least 12 weeks, maybe 16. And we'd need to maintain feature parity with the current app.
+
+Tom: Our user surveys show that mobile users are 40% of our active user base but only 15% of paid conversions. If we improve the mobile experience, there's huge revenue potential.
+
+Sarah: But 12-16 weeks is basically the entire quarter. Can we break this down into phases?
+
+Jessica: We could do the UI refresh first without the native rewrite - keep React Native but update all the visual components and optimize performance. That would take about 4 weeks.
+
+Mike: That's more realistic. We can also implement some quick performance wins - better caching, lazy loading, reducing bundle size. That might get us from 3.8 to 4.2 stars without a full rewrite.
+
+Sarah: Okay, let's prioritize that way. So summarizing what we've discussed:
+- Priority 1: API rate limiting (3 weeks) - critical for stability and opens revenue opportunities
+- Priority 2: Onboarding flow redesign (4 weeks) - directly impacts growth
+- Priority 3: Mobile app UI refresh and performance (4 weeks) - improves user satisfaction and ratings
+
+That's 11 weeks of work. Given we have 12 weeks in Q4 and Mike mentioned we're at 85% capacity, this seems tight but achievable.
+
+Mike: We'll need to push some maintenance work to Q1, but yes, this is doable.
+
+Tom: From a launch perspective, can we coordinate the mobile app refresh with our holiday marketing campaign? That's launching mid-November.
+
+Jessica: That would be tight. We'd need to start mobile work immediately and finish by early November for App Store review time.
+
+Sarah: Let's target the rate limiting for end of October, onboarding for mid-November, and mobile for early December. That gives us buffer time and we can still promote the mobile improvements in our year-end campaigns.
+
+Tom: That works. I'll adjust the marketing calendar.
+
+Mike: One more thing - we should set up better monitoring and alerting. We keep finding issues through customer complaints rather than our own tools. I'd like to allocate 1-2 weeks for observability improvements.
+
+Sarah: Can we do that in parallel with other work?
+
+Mike: Yes, different engineers can work on it. It won't block the main projects.
+
+Sarah: Perfect. Let's do it. I'll send out the updated roadmap document by end of day, and we'll have weekly check-ins starting next Monday.
+
+Everyone: Sounds good!
+
+Sarah: Great meeting, everyone. Thanks for the thoughtful discussion!
+
+[Meeting ends]
+
+Action Items:
+- Sarah: Finalize Q4 roadmap document and share by EOD
+- Mike: Break down engineering tasks and assign to team by Friday
+- Jessica: Prepare detailed specs for onboarding flow redesign
+- Tom: Update marketing calendar to align with new launch dates
+- Mike: Set up initial monitoring infrastructure by next week
